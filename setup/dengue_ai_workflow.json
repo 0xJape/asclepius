@@ -1,0 +1,239 @@
+{
+  "name": "Dengue Prediction AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dengue-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Chat Input Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost/asclpe/api/dengue_prediction_bot.php",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.body.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-request-data",
+      "name": "Get Current Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "list"
+        },
+        "messages": {
+          "messageValues": [
+            {
+              "role": "system",
+              "message": "You are a specialized Dengue Prediction AI Assistant for Tupi, South Cotabato, Philippines health monitoring system.\n\nCONTEXT:\n- Location: Tupi, South Cotabato, Philippines\n- Climate: Tropical, high humidity, monsoon seasons\n- Population: ~70,000 across 16 barangays\n- Common dengue serotypes: DENV-1, DENV-2, DENV-3, DENV-4\n\nCAPABILITIES:\n1. **Spread Rate Analysis**: Calculate R₀, transmission rates, doubling time\n2. **Risk Assessment**: Weather-based risk scoring using temperature, humidity, rainfall\n3. **Forecasting**: 7-day case predictions using epidemiological models\n4. **Barangay Analysis**: Location-specific risk and case statistics\n5. **Public Health**: Evidence-based recommendations and interventions\n\nRESPONSE FORMAT:\n- Start with appropriate emoji (📊 for statistics, 🔮 for predictions, ⚠️ for warnings)\n- Include specific numbers and percentages\n- Provide risk classification (🔴 High, 🟡 Medium, 🟢 Low)\n- End with actionable recommendations\n- Use bullet points for clarity\n- Keep responses under 300 words\n\nSAMPLE QUERIES TO HANDLE:\n- \"What is the current spread rate?\"\n- \"Show me 7-day prediction\"\n- \"Risk level in [barangay name]\"\n- \"How many cases in [location]?\"\n- \"Weather impact on dengue transmission\"\n- \"Prevention recommendations\"\n\nAlways base responses on real epidemiological data and established dengue transmission models. Use the current data provided to give accurate insights."
+            },
+            {
+              "role": "user",
+              "message": "={{ $('Chat Input Webhook').item.json.body.message }}\n\nCurrent system data: {{ JSON.stringify($('Get Current Data').item.json) }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 500
+        }
+      },
+      "id": "openai-agent",
+      "name": "Dengue AI Assistant",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [680, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Format the AI response for the chatbot\nconst aiResponse = $input.first().json.choices[0].message.content;\nconst originalMessage = $('Chat Input Webhook').first().json.body.message;\nconst systemData = $('Get Current Data').first().json;\n\n// Add metadata and formatting\nconst formattedResponse = {\n  success: true,\n  response: {\n    type: 'ai_analysis',\n    message: aiResponse,\n    timestamp: new Date().toISOString(),\n    request_id: Math.random().toString(36).substr(2, 9),\n    source: 'n8n_ai_agent'\n  },\n  original_query: originalMessage,\n  system_data_used: systemData ? 'yes' : 'no'\n};\n\nreturn { json: formattedResponse };"
+      },
+      "id": "function-formatter",
+      "name": "Format AI Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $('Get Current Data').item.json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-data-success",
+      "name": "Check Data Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 480]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Fallback response when data fetch fails\nconst originalMessage = $('Chat Input Webhook').first().json.body.message;\nconst errorData = $('Get Current Data').first().json;\n\nconst fallbackResponse = {\n  success: true,\n  response: {\n    type: 'fallback',\n    message: `I apologize, but I'm having trouble accessing the current dengue data right now. However, I can still provide general information about dengue prevention and monitoring.\\n\\nRegarding your question: \"${originalMessage}\"\\n\\n📋 **General Dengue Information:**\\n• Monitor symptoms: fever, headache, muscle pain\\n• Eliminate standing water sources\\n• Use mosquito repellent and nets\\n• Seek immediate medical attention for severe symptoms\\n\\nPlease try again in a moment, or contact your local health office for current statistics.`,\n    timestamp: new Date().toISOString(),\n    request_id: Math.random().toString(36).substr(2, 9),\n    source: 'n8n_fallback'\n  },\n  original_query: originalMessage,\n  error_info: errorData\n};\n\nreturn { json: fallbackResponse };"
+      },
+      "id": "function-fallback",
+      "name": "Fallback Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [680, 480]
+    }
+  ],
+  "connections": {
+    "Chat Input Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Current Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Data": {
+      "main": [
+        [
+          {
+            "node": "Check Data Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dengue AI Assistant": {
+      "main": [
+        [
+          {
+            "node": "Format AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format AI Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Data Success": {
+      "main": [
+        [
+          {
+            "node": "Dengue AI Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z",
+      "id": "1",
+      "name": "dengue-ai"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

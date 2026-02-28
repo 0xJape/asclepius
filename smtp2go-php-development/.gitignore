@@ -1,0 +1,7 @@
+.phpunit.cache
+phpunit-dev.xml
+vendor
+Examples
+.vscode
+composer.lock
+release-dev-tag.sh

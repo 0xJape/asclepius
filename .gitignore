@@ -1,0 +1,28 @@
+# Dependencies
+vendor/
+.venv/
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads (keep structure but not files)
+uploads/patients/*
+!uploads/patients/.gitkeep
+
+# Database exports (sensitive)
+database_exports/
+
+# SMTP2GO tests
+smtp2go-php-development/tests/

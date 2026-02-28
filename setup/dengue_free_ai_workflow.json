@@ -1,0 +1,217 @@
+{
+  "name": "Dengue Prediction FREE AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dengue-chat-free",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Chat Input Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost/asclpe/api/dengue_prediction_bot_original.php",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={ \"message\": \"{{ $json.body.message }}\" }",
+        "options": {}
+      },
+      "id": "http-request-data",
+      "name": "Get Current Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={\n  \"model\": \"llama2\",\n  \"prompt\": \"You are a specialized Dengue Prediction AI Assistant for Tupi, South Cotabato, Philippines health monitoring system.\\n\\nCONTEXT:\\n- Location: Tupi, South Cotabato, Philippines\\n- Climate: Tropical, high humidity, monsoon seasons\\n- Population: ~70,000 across 16 barangays\\n- Common dengue serotypes: DENV-1, DENV-2, DENV-3, DENV-4\\n\\nCAPABILITIES:\\n1. Spread Rate Analysis: Calculate R₀, transmission rates, doubling time\\n2. Risk Assessment: Weather-based risk scoring\\n3. Forecasting: 7-day case predictions\\n4. Barangay Analysis: Location-specific risk and case statistics\\n5. Public Health: Evidence-based recommendations\\n\\nRESPONSE FORMAT:\\n- Start with appropriate emoji (📊 for statistics, 🔮 for predictions, ⚠️ for warnings)\\n- Include specific numbers and percentages\\n- Provide risk classification (🔴 High, 🟡 Medium, 🟢 Low)\\n- End with actionable recommendations\\n- Use bullet points for clarity\\n- Keep responses under 300 words\\n\\nUser Question: {{ $('Chat Input Webhook').item.json.body.message }}\\n\\nCurrent System Data: {{ JSON.stringify($('Get Current Data').item.json) }}\\n\\nProvide a helpful dengue analysis response with specific insights and recommendations:\\n\\nAssistant:\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.7,\n    \"num_predict\": 500\n  }\n}",
+        "options": {}
+      },
+      "id": "ollama-ai",
+      "name": "FREE AI Assistant (Ollama)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process Ollama response and format for chatbot\nconst ollamaResponse = $input.first().json.response;\nconst originalMessage = $('Chat Input Webhook').first().json.body.message;\nconst systemData = $('Get Current Data').first().json;\n\n// Clean up the AI response\nlet cleanResponse = ollamaResponse;\nif (cleanResponse) {\n  // Remove any system prompt echoes\n  cleanResponse = cleanResponse.replace(/^(You are a specialized|Assistant:|User Question:).*?\\n/gm, '');\n  cleanResponse = cleanResponse.trim();\n}\n\n// Add metadata and formatting\nconst formattedResponse = {\n  success: true,\n  response: {\n    type: 'ai_analysis',\n    message: cleanResponse || 'I apologize, but I\\'m having trouble generating a response right now. Please try asking a more specific question about dengue monitoring.',\n    timestamp: new Date().toISOString(),\n    request_id: Math.random().toString(36).substr(2, 9),\n    source: 'ollama_free_ai',\n    model: 'llama2'\n  },\n  original_query: originalMessage,\n  system_data_used: systemData && systemData.success ? 'yes' : 'no'\n};\n\nreturn { json: formattedResponse };"
+      },
+      "id": "function-formatter",
+      "name": "Format AI Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "ollama-check",
+              "leftValue": "={{ $('FREE AI Assistant (Ollama)').item.json.response }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-ai-success",
+      "name": "Check AI Response",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 480]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Fallback response when AI fails\nconst originalMessage = $('Chat Input Webhook').first().json.body.message;\nconst aiError = $('FREE AI Assistant (Ollama)').first().json;\n\nconst fallbackResponse = {\n  success: true,\n  response: {\n    type: 'fallback',\n    message: `I apologize, but the AI assistant is currently unavailable. However, I can provide general dengue information.\\n\\nRegarding your question: \"${originalMessage}\"\\n\\n📋 **General Dengue Guidelines:**\\n• **Symptoms to Monitor**: High fever (40°C), severe headache, muscle pain, nausea\\n• **Prevention**: Eliminate standing water, use repellent, wear long sleeves\\n• **Seek Medical Help**: For persistent fever, bleeding, difficulty breathing\\n• **High-Risk Areas**: Areas with recent cases or poor sanitation\\n\\n🏥 **For current statistics and risk levels, please contact your local health office or try again later when the AI service is restored.**`,\n    timestamp: new Date().toISOString(),\n    request_id: Math.random().toString(36).substr(2, 9),\n    source: 'php_fallback_ai_unavailable'\n  },\n  original_query: originalMessage,\n  ai_error: 'Ollama AI service unavailable'\n};\n\nreturn { json: fallbackResponse };"
+      },
+      "id": "function-fallback",
+      "name": "Fallback Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [900, 480]
+    }
+  ],
+  "connections": {
+    "Chat Input Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Current Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Data": {
+      "main": [
+        [
+          {
+            "node": "FREE AI Assistant (Ollama)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FREE AI Assistant (Ollama)": {
+      "main": [
+        [
+          {
+            "node": "Check AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format AI Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check AI Response": {
+      "main": [
+        [
+          {
+            "node": "Format AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z",
+      "id": "1",
+      "name": "dengue-free-ai"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

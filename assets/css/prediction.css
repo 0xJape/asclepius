@@ -1,0 +1,136 @@
+/* Prediction page styles */
+
+/* Chart annotations */
+.chartjs-tooltip {
+    opacity: 1;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 3px;
+    pointer-events: none;
+    transform: translate(-50%, 0);
+    padding: 5px 10px;
+    font-size: 12px;
+    z-index: 1000;
+}
+
+/* Weather annotation styling */
+.weather-annotation {
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 11px;
+}
+
+.weather-annotation.rain {
+    background-color: rgba(0, 0, 255, 0.7);
+    color: white;
+}
+
+.weather-annotation.hot {
+    background-color: rgba(255, 0, 0, 0.7);
+    color: white;
+}
+
+.weather-annotation.optimal {
+    background-color: rgba(255, 165, 0, 0.7);
+    color: white;
+}
+
+/* Risk indicator */
+.risk-indicator {
+    display: flex;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.risk-indicator-bar {
+    flex-grow: 1;
+    height: 12px;
+    background: linear-gradient(to right, #28a745, #ffc107, #fd7e14, #dc3545);
+    border-radius: 6px;
+    position: relative;
+    margin: 0 10px;
+}
+
+.risk-indicator-marker {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: white;
+    border: 3px solid #333;
+    border-radius: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transition: left 0.5s ease;
+}
+
+.risk-indicator-value {
+    font-weight: bold;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Weather impact visualization */
+.weather-impact-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.weather-impact-icon {
+    margin-right: 0.75rem;
+    font-size: 1.25rem;
+    width: 30px;
+    text-align: center;
+}
+
+.weather-impact-bar {
+    flex-grow: 1;
+    height: 12px;
+    border-radius: 6px;
+    background-color: #e9ecef;
+}
+
+.weather-impact-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s ease;
+}
+
+.weather-impact-bar-fill.temperature {
+    background-color: #dc3545;
+}
+
+.weather-impact-bar-fill.humidity {
+    background-color: #0dcaf0;
+}
+
+.weather-impact-bar-fill.rainfall {
+    background-color: #0d6efd;
+}
+
+.weather-impact-bar-fill.seasonal {
+    background-color: #6f42c1;
+}
+
+/* Notification toast */
+.notification-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.3s forwards;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
