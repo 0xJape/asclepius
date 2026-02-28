@@ -2,9 +2,10 @@
 // gemini_chatbot.php
 // Gemini API chatbot with database integration for dengue monitoring
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/env.php';
 
-$apiKey = 'AIzaSyCEHUna3NNvDBQ8H-J5oIrUqXCPbrDBTRE';
-$geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+$apiKey = env('GEMINI_API_KEY');
+$geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
 
 // Database functions for chatbot
 function getDengueStatistics() {

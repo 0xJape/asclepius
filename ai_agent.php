@@ -2,6 +2,7 @@
 session_start();
 require_once 'includes/config.php';
 require_once 'includes/auth.php';
+require_once 'includes/env.php';
 
 // Verify user is logged in
 checkAuth();
@@ -47,8 +48,8 @@ function getSimpleGeminiResponse($userMessage) {
     $context .= "You are the ASCLEPIUS AI assistant for dengue surveillance. Provide helpful, accurate responses about dengue prevention, monitoring, and the data shown above.";
     
     // Call Gemini API
-    $apiKey = "AIzaSyCEHUna3NNvDBQ8H-J5oIrUqXCPbrDBTRE";
-    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    $apiKey = env('GEMINI_API_KEY');
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
     
     $requestBody = [
         'contents' => [

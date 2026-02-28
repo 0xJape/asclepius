@@ -1,5 +1,7 @@
 <?php
 // Gemini API Proxy for browser requests
+require_once __DIR__ . '/../includes/env.php';
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
@@ -10,8 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$api_key = "AIzaSyCEHUna3NNvDBQ8H-J5oIrUqXCPbrDBTRE";
-$url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+$api_key = env('GEMINI_API_KEY');
+$url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
 // Get JSON POST body
 $input = file_get_contents('php://input');
