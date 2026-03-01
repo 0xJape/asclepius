@@ -171,6 +171,15 @@ $statsData = getDashboardStats();
                 </a>
             </div>
         </div>
+        
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-info">
+                    <div class="user-name"><?php echo htmlspecialchars($_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User'); ?></div>
+                    <div class="user-role"><?php echo htmlspecialchars($_SESSION['role'] ?? 'User'); ?></div>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <!-- Main Content -->

@@ -2,10 +2,9 @@
 // gemini_chatbot.php
 // Gemini API chatbot with database integration for dengue monitoring
 require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/env.php';
 
-$apiKey = env('GEMINI_API_KEY');
-$geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
+$apiKey = 'AIzaSyCd9yYBMFHsncvru9kLRBISTQBR4WEBjqk';
+$geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 // Database functions for chatbot
 function getDengueStatistics() {
@@ -1210,94 +1209,22 @@ Note: You have access to COMPREHENSIVE DATA spanning 2014-2050, including:
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
-        'x-goog-api-key: ' . $apiKey
+        'X-goog-api-key: ' . $apiKey
     ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
     $result = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    $curlErrno = curl_errno($ch);
+    if (curl_errno($ch)) {
+        curl_close($ch);
+        return 'Error contacting Gemini API: ' . curl_error($ch);
+    }
     curl_close($ch);
-    
-    // Handle cURL errors
-    if ($curlErrno) {
-        error_log("Gemini API cURL error: $curlError (errno: $curlErrno)");
-        return "Connection error: Unable to reach AI service. Please check your internet connection and try again.";
-    }
-    
-    // Handle empty response
-    if (empty($result)) {
-        error_log("Gemini API returned empty response. HTTP Code: $httpCode");
-        return "The AI service returned an empty response. Please try again in a moment.";
-    }
-    
     $response = json_decode($result, true);
-    
-    // Handle JSON decode errors
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log("Gemini API JSON decode error: " . json_last_error_msg() . ". Raw response: " . substr($result, 0, 500));
-        return "Error processing AI response. Please try again.";
-    }
-    
-    // Handle API errors
-    if (isset($response['error'])) {
-        $errorMsg = $response['error']['message'] ?? 'Unknown error';
-        $errorCode = $response['error']['code'] ?? $httpCode;
-        error_log("Gemini API error: $errorCode - $errorMsg");
-        
-        // User-friendly error messages
-        switch ($errorCode) {
-            case 400:
-                return "Invalid request. The query may be too long or contain unsupported content.";
-            case 401:
-            case 403:
-                return "Authentication error. Please contact the administrator to verify the API key.";
-            case 404:
-                return "AI model not found. The system may need to be updated.";
-            case 429:
-                return "Too many requests. Please wait a moment before trying again.";
-            case 500:
-            case 502:
-            case 503:
-                return "The AI service is temporarily unavailable. Please try again later.";
-            default:
-                return "AI service error ($errorCode). Please try again or contact support.";
-        }
-    }
-    
-    // Handle blocked content
-    if (isset($response['promptFeedback']['blockReason'])) {
-        $blockReason = $response['promptFeedback']['blockReason'];
-        error_log("Gemini API content blocked: $blockReason");
-        return "Your query was blocked due to content restrictions. Please rephrase your question.";
-    }
-    
-    // Handle missing candidates
-    if (!isset($response['candidates']) || empty($response['candidates'])) {
-        error_log("Gemini API no candidates returned. Response: " . json_encode($response));
-        return "The AI could not generate a response. Please try rephrasing your question.";
-    }
-    
-    // Handle finish reason
-    $finishReason = $response['candidates'][0]['finishReason'] ?? null;
-    if ($finishReason === 'SAFETY') {
-        return "The response was filtered for safety reasons. Please try a different question.";
-    }
-    if ($finishReason === 'RECITATION') {
-        return "The response contained potential copyright content and was filtered.";
-    }
-    
-    // Extract the response text
     if (isset($response['candidates'][0]['content']['parts'][0]['text'])) {
         return $response['candidates'][0]['content']['parts'][0]['text'];
+    } else {
+        return 'No response from Gemini.';
     }
-    
-    // Fallback error
-    error_log("Gemini API unexpected response structure: " . json_encode($response));
-    return "Unable to process AI response. Please try again or rephrase your question.";
 }
 
 // Example usage:
@@ -1699,6 +1626,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
                         <i class="fas fa-robot"></i>
                         <span>AI Chatbot</span>
                     </a>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Administrator'); ?></div>
+                        <div class="user-role">Administrator</div>
+                    </div>
                 </div>
             </div>
         </nav>

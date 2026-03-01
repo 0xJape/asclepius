@@ -713,6 +713,15 @@ foreach ($forecastRisk as $day) {
                 </a>
             </div>
         </div>
+        
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-info">
+                    <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Demo User'); ?></div>
+                    <div class="user-role">Administrator</div>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <!-- Main Content -->

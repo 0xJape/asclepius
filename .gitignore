@@ -1,28 +1,39 @@
+# Sensitive Configuration
+includes/config.php
+includes/env.php
+.env
+
 # Dependencies
 vendor/
-.venv/
 node_modules/
 
-# IDE
+# Python Virtual Environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Uploads (keep folder structure but exclude files)
+uploads/patients/*
+!uploads/patients/.gitkeep
+
+# Logs
+logs/*.log
+*.log
+
+# IDE and Editor Files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Environment
-.env
-*.log
-
-# OS files
+# OS Files
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Uploads (keep structure but not files)
-uploads/patients/*
-!uploads/patients/.gitkeep
-
-# Database exports (sensitive)
-database_exports/
-
-# SMTP2GO tests
-smtp2go-php-development/tests/
+# Temporary Files
+*.tmp
+*.bak
+*.cache

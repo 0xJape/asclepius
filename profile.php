@@ -97,6 +97,15 @@ try {
                 </a>
             </div>
         </div>
+        
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-info">
+                    <div class="user-name"><?php echo htmlspecialchars($userInfo['full_name']); ?></div>
+                    <div class="user-role"><?php echo htmlspecialchars($userInfo['role']); ?></div>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <!-- Main Content -->
@@ -204,11 +213,6 @@ try {
                                 <a href="chatbot/chatbot.php" class="btn btn-outline-success">
                                     <i class="fas fa-robot me-2"></i>
                                     AI Chatbot
-                                </a>
-                                <hr>
-                                <a href="logout.php" class="btn btn-outline-danger">
-                                    <i class="fas fa-sign-out-alt me-2"></i>
-                                    Sign Out
                                 </a>
                             </div>
                         </div>

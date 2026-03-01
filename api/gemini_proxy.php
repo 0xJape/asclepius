@@ -1,7 +1,5 @@
 <?php
 // Gemini API Proxy for browser requests
-require_once __DIR__ . '/../includes/env.php';
-
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
@@ -12,105 +10,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$api_key = env('GEMINI_API_KEY');
-$url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
+$api_key = "AIzaSyDtdoTf66gjbtdw3DC1FmFcrALoRetFQjc";
+$url = "https://generativelanguage.googleapis.com/v1beta2/models/gemini-pro:generateContent?key=$api_key";
 
 // Get JSON POST body
 $input = file_get_contents('php://input');
 if (!$input) {
-    http_response_code(400);
-    echo json_encode(["error" => "No input received.", "code" => 400]);
+    echo json_encode(["error" => "No input received."]);
     exit;
 }
 
 // Validate JSON
 $json_data = json_decode($input, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
-    http_response_code(400);
-    echo json_encode(["error" => "Invalid JSON: " . json_last_error_msg(), "code" => 400]);
+    echo json_encode(["error" => "Invalid JSON: " . json_last_error_msg()]);
     exit;
 }
 
-// Use cURL for better error handling
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_POST => true,
-    CURLOPT_HTTPHEADER => [
-        'Content-Type: application/json',
-        'x-goog-api-key: ' . $api_key
-    ],
-    CURLOPT_POSTFIELDS => $input,
-    CURLOPT_TIMEOUT => 60,
-    CURLOPT_SSL_VERIFYPEER => true
-]);
+// Forward request to Gemini API
+$options = [
+    "http" => [
+        "header" => "Content-Type: application/json\r\n",
+        "method" => "POST",
+        "content" => $input,
+        "timeout" => 30,
+        "ignore_errors" => true
+    ]
+];
 
-$result = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-$curlErrno = curl_errno($ch);
-curl_close($ch);
+$context = stream_context_create($options);
+$result = file_get_contents($url, false, $context);
 
-// Handle cURL errors
-if ($curlErrno) {
-    http_response_code(503);
+if ($result === FALSE) {
+    $error_msg = error_get_last();
     echo json_encode([
-        "error" => "Connection failed: $curlError",
-        "code" => 503,
-        "type" => "connection_error"
+        "error" => "Failed to connect to Gemini API.",
+        "details" => $error_msg ? $error_msg['message'] : "Unknown error",
+        "php_config" => [
+            "allow_url_fopen" => ini_get('allow_url_fopen') ? true : false,
+            "openssl" => extension_loaded('openssl')
+        ]
     ]);
     exit;
 }
 
-// Handle empty response
-if (empty($result)) {
-    http_response_code(502);
-    echo json_encode([
-        "error" => "Empty response from AI service",
-        "code" => 502,
-        "type" => "empty_response"
-    ]);
-    exit;
+// Check HTTP response code
+$http_code = null;
+if (isset($http_response_header)) {
+    foreach ($http_response_header as $header) {
+        if (strpos($header, 'HTTP/') === 0) {
+            $http_code = $header;
+            break;
+        }
+    }
 }
 
-// Parse response
+// Return Gemini API response
 $response = json_decode($result, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
-    http_response_code(502);
     echo json_encode([
-        "error" => "Invalid JSON response from AI service",
-        "code" => 502,
-        "type" => "parse_error"
+        "error" => "Invalid response from Gemini API",
+        "raw_response" => substr($result, 0, 500),
+        "http_code" => $http_code
     ]);
     exit;
 }
 
-// Handle API errors with user-friendly messages
-if (isset($response['error'])) {
-    $errorCode = $response['error']['code'] ?? $httpCode;
-    $errorMsg = $response['error']['message'] ?? 'Unknown error';
-    
-    http_response_code($errorCode >= 400 && $errorCode < 600 ? $errorCode : 500);
-    
-    $userMessage = match(true) {
-        $errorCode == 400 => "Invalid request format or content",
-        $errorCode == 401 || $errorCode == 403 => "API authentication failed",
-        $errorCode == 404 => "AI model not available",
-        $errorCode == 429 => "Rate limit exceeded. Please wait a moment",
-        $errorCode >= 500 => "AI service temporarily unavailable",
-        default => "AI service error"
-    };
-    
-    echo json_encode([
-        "error" => $userMessage,
-        "details" => $errorMsg,
-        "code" => $errorCode,
-        "type" => "api_error"
-    ]);
-    exit;
-}
-
-// Return successful response
-http_response_code(200);
 echo json_encode($response);
 ?>

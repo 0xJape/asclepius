@@ -2,7 +2,6 @@
 session_start();
 require_once 'includes/config.php';
 require_once 'includes/auth.php';
-require_once 'includes/env.php';
 
 // Verify user is logged in
 checkAuth();
@@ -48,8 +47,8 @@ function getSimpleGeminiResponse($userMessage) {
     $context .= "You are the ASCLEPIUS AI assistant for dengue surveillance. Provide helpful, accurate responses about dengue prevention, monitoring, and the data shown above.";
     
     // Call Gemini API
-    $apiKey = env('GEMINI_API_KEY');
-    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
+    $apiKey = "AIzaSyDtdoTf66gjbtdw3DC1FmFcrALoRetFQjc";
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey";
     
     $requestBody = [
         'contents' => [
@@ -61,75 +60,31 @@ function getSimpleGeminiResponse($userMessage) {
         ]
     ];
     
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($requestBody),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'x-goog-api-key: ' . $apiKey
-        ],
-        CURLOPT_TIMEOUT => 60,
-        CURLOPT_SSL_VERIFYPEER => true
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestBody));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
     ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    $curlErrno = curl_errno($ch);
     curl_close($ch);
     
-    // Handle connection errors
-    if ($curlErrno) {
-        error_log("AI Agent cURL error: $curlError");
-        return "Connection issue. Please check your internet and try again.";
-    }
-    
-    // Handle empty response
-    if (empty($response)) {
-        error_log("AI Agent empty response. HTTP: $httpCode");
-        return "The AI service returned no response. Please try again.";
+    if ($httpCode !== 200 || !$response) {
+        return "I'm experiencing technical difficulties right now. Please try asking about dengue prevention, current cases, or risk assessment.";
     }
     
     $data = json_decode($response, true);
     
-    // Handle JSON errors
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log("AI Agent JSON error: " . json_last_error_msg());
-        return "Error processing AI response. Please try again.";
-    }
-    
-    // Handle API errors
-    if (isset($data['error'])) {
-        $errorCode = $data['error']['code'] ?? $httpCode;
-        error_log("AI Agent API error: $errorCode - " . ($data['error']['message'] ?? 'Unknown'));
-        
-        return match(true) {
-            $errorCode == 429 => "Too many requests. Please wait a moment and try again.",
-            $errorCode == 401 || $errorCode == 403 => "API authentication error. Please contact the administrator.",
-            $errorCode >= 500 => "AI service is temporarily unavailable. Please try later.",
-            default => "AI service error. Please try asking your question differently."
-        };
-    }
-    
-    // Handle safety blocks
-    if (isset($data['promptFeedback']['blockReason'])) {
-        return "Your question was filtered. Please rephrase and try again.";
-    }
-    
-    // Extract response
     if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
         return $data['candidates'][0]['content']['parts'][0]['text'];
     }
     
-    // Check finish reason
-    $finishReason = $data['candidates'][0]['finishReason'] ?? null;
-    if ($finishReason === 'SAFETY') {
-        return "Response filtered for safety. Please ask a different question.";
-    }
-    
-    return "I'm here to help with dengue surveillance. Ask about current cases, prevention tips, or risk assessment.";
+    return "I'm here to help with dengue surveillance questions. You can ask me about current cases, prevention tips, or risk assessment.";
 }
 ?>
 <!DOCTYPE html>
@@ -517,6 +472,15 @@ function getSimpleGeminiResponse($userMessage) {
                         <i class="fas fa-robot"></i>
                         <span>AI Agent</span>
                     </a>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
+                        <div class="user-role">Administrator</div>
+                    </div>
                 </div>
             </div>
         </nav>
